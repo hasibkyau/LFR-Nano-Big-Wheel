@@ -42,11 +42,11 @@ HCSR04 SonarL(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig 
 int SonarA, SonarB;
 
 //Speed and time tuner
-const int TST = 500; // Track searching time (FM - 180)
+const int TST = 250; // Track searching time (FM - 180)
 const int _90dTtime = 0; // time need for turning 90 degree
 const int _180Ttime = 0; // time need for turning 180 degree
 const int TBT = 100; // time before turning (FM - 120)
-const int TAT = 50; // time after taking turn for distracting from current track (FM - 35)
+const int TAT = 0; // time after taking turn for distracting from current track (FM - 35)
 
 //For asynchronous function
 unsigned long TimeCount;
@@ -92,17 +92,19 @@ void setup() {
 
   int spd = 170;
 
-  while (true) {
+  while (false) {
     ReadIR();
     //ReadSonar();
     //Straight();
-    ShowMessges();
+    //ShowMessges();
     //
     MotorR.Forward();
-    MotorL.Backward();
-    MotorR.Speed(200);
-    MotorL.Speed(200);
-    delay(100);
+    MotorL.Forward();
+    MotorR.Speed(255);
+    MotorL.Speed(255);
+    if(B == 0 && C == 0 && D == 0){
+          Beep(2, 100);
+    }
     //spd += 5;
     //
     //(spd == 255) ? spd = 255 : spd = spd ;
@@ -120,7 +122,7 @@ void loop() {
   ReadIR(); // reading IR data
   //ReadSonar();
   FollowTrack();
-  ShowMessges();
+  //ShowMessges();
 
   //  if(F == 1){
   //    FollowTrack();
@@ -144,54 +146,62 @@ void Neutral() {
 
 //*** Straight Forward - ok
 void Straight() {
-  MotorR.Speed(R_max_speed);//left motor is bit damaged thats why used more duty cycle than right motor
-  MotorL.Speed(L_max_speed);
+  //MotorL.Forward(); MotorR.Forward();
+  MotorR.Speed(255);//left motor is bit damaged thats why used more duty cycle than right motor
+  MotorL.Speed(255);
 }
 
 //*** Smooth Left Turn - ok
 void SmoothLeft() {
-  MotorL.Speed(L_max_speed - 20);
-  MotorR.Speed(R_max_speed);
+  //MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(220);
+  MotorR.Speed(240);
 }
 
 //*** Smooth Right Turn - ok
 void SmoothRight() {
-  MotorL.Speed(L_max_speed);
-  MotorR.Speed(R_max_speed - 35);
+  //MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(220);
+  MotorR.Speed(240);
 }
 
 
 //*** Medium Left Turn - ok
 void MedLeft() {
-  MotorL.Speed(L_max_speed - 55);
-  MotorR.Speed(R_max_speed);
+  MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(220);
+  MotorR.Speed(250);
 }
 
 
 //*** Medium Right Turn - ok
 void MedRight() {
-  MotorL.Speed(max_speed);
-  MotorR.Speed(R_max_speed - 40);
+  MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(250);
+  MotorR.Speed(220);
 }
 
 //hard left - ok
 void HardLeft() {
-  MotorL.Speed(max_speed - 95);
-  MotorR.Speed(R_max_speed);
+  MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(210);
+  MotorR.Speed(255);
 }
 
 //Hard right - ok
 void HardRight() {
-  MotorL.Speed(max_speed);
-  MotorR.Speed(R_max_speed - 75);
+  MotorL.Forward(); MotorR.Forward();
+  MotorL.Speed(255);
+  MotorR.Speed(210);
 
 }
 
 //*** Sharp Left Turn - ok
 void SharpLeft() {
+  //MotorL.Forward(); MotorR.Forward();
   MotorL.Release();
-  MotorR.Speed(180);
-  MotorL.Speed(180);
+  MotorR.Speed(220);
+  MotorL.Speed(220);
   do {
     ReadIR();
   }
@@ -201,9 +211,10 @@ void SharpLeft() {
 
 //*** Sharp Right Turn - ok
 void SharpRight() {
+  //MotorL.Forward(); MotorR.Forward();
   MotorR.Release();
-  MotorR.Speed(180);
-  MotorL.Speed(180);
+  MotorR.Speed(220);
+  MotorL.Speed(220);
   do {
     ReadIR();
   }
@@ -215,15 +226,15 @@ void SharpRight() {
 void _90dLeft() {
 //  Straight();
 //  delay(TBT);
-  Neutral(); delay(100);
+  Neutral(); 
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(170); MotorR.Speed(170);
+  MotorL.Speed(230); MotorR.Speed(220);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   do {
     ReadIR();
   }
-  while (!(AIR == 4 && C == 0));
-  Neutral(); delay(10);
+  while (AIR == 5);
+  Neutral();
   MotorL.Forward(); MotorR.Forward();
 }
 
@@ -232,16 +243,16 @@ void _90dRight() {
 //  Straight();
 //  delay(TBT);
   //(AIR < 5)?Straight():Neutral(); //if there is multiple line it will take the middle line
-  Neutral(); delay(10);
+  Neutral();
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(170); MotorR.Speed(170);
+  MotorL.Speed(230); MotorR.Speed(220);
   //MotorL.Speed(max_speed); MotorR.Speed(0);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   do {
     ReadIR();
   }
-  while (!(AIR == 4 && C == 0));
-  Neutral(); delay(10);
+  while (AIR == 5);
+  Neutral(); 
   MotorL.Forward(); MotorR.Forward();
 }
 
@@ -277,12 +288,13 @@ void _180dTurn() {
 void FollowTrack() {
   if (AIR == 4)//On track
   {
-    (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
-    //(A == 0) ? HardLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : HardRight();
+    (A == 0) ? SharpLeft() : (B == 0) ? HardLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? HardRight() : (E == 0) ? SharpRight() : ReadIR(); 
+    //(A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
   }
   else if (AIR == 3) //
-  {
-    (C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
+  {   
+    (C + D == 0) ? MedRight() : (D + E == 0) ? SharpRight() : (C + B == 0) ? MedLeft() : (A + B == 0) ? SharpLeft() : ReadIR();
+    //(C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
   }
   else if (AIR == 2 || AIR == 1) {
     Straight();
@@ -294,6 +306,10 @@ void FollowTrack() {
     Straight();
     delay(TBT);
     DefaultTurn();
+    do{
+      ReadIR();
+    }
+    while(AIR == 0);
   }
   else if (AIR == 5)// White space
   {
@@ -354,24 +370,24 @@ void ReadIR() {
   C = analogRead(IRC); C = C / 1000; //(C == 0) ? C = 0 : C = 1;// 0 = black, 1 = white
   D = analogRead(IRD); D = D / 1000; //(D == 0) ? D = 0 : D = 1;// 0 = black, 1 = white
   E = analogRead(IRE); E = E / 1000; //(E == 0) ? E = 0 : E = 1;// 0 = black, 1 = white
-  F = analogRead(IRF); F = F / 1000; //(F == 0) ? F = 0 : F = 1;// 0 = black, 1 = white
+  //F = analogRead(IRF); F = F / 1000; //(F == 0) ? F = 0 : F = 1;// 0 = black, 1 = white
   AIR = A + B + C + D + E;
 
-  Serial.println(" ");
-  Serial.print(":A=");
-  Serial.print(A);
-  Serial.print(":B=");
-  Serial.print(B);
-  Serial.print(":C=");
-  Serial.print(C);
-  Serial.print(":D=");
-  Serial.print(D);
-  Serial.print(":E=");
-  Serial.print(E);
-  Serial.print(":F=");
-  Serial.print(F);
-  Serial.print(":AIR=");
-  Serial.print(AIR);
+//  Serial.println(" ");
+//  Serial.print(":A=");
+//  Serial.print(A);
+//  Serial.print(":B=");
+//  Serial.print(B);
+//  Serial.print(":C=");
+//  Serial.print(C);
+//  Serial.print(":D=");
+//  Serial.print(D);
+//  Serial.print(":E=");
+//  Serial.print(E);
+//  Serial.print(":F=");
+//  Serial.print(F);
+//  Serial.print(":AIR=");
+//  Serial.print(AIR);
 }
 
 void ReadSonar() {
