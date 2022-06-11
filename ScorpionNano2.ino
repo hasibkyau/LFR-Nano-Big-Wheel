@@ -45,8 +45,8 @@ int SonarA, SonarB;
 const int TST = 500; // Track searching time (FM - 180)
 const int _90dTtime = 0; // time need for turning 90 degree
 const int _180Ttime = 0; // time need for turning 180 degree
-const int TBT = 120; // time before turning (FM - 120)
-const int TAT = 150; // time after taking turn for distracting from current track (FM - 35)
+const int TBT = 100; // time before turning (FM - 120)
+const int TAT = 50; // time after taking turn for distracting from current track (FM - 35)
 
 //For asynchronous function
 unsigned long TimeCount;
@@ -64,7 +64,7 @@ unsigned long TimeLap;
 int ENA = 3, IN1 = 4, IN2 = 5, ENB = 6, IN3 = 7, IN4 = 8;// For Motor Driver
 
 //Variables
-int DutyCycle = 0, min_speed = 200, med_speed = 205, high_speed = 210, max_speed = 255, R_max_speed = 255, L_max_speed = 230;
+int DutyCycle = 0, min_speed = 200, med_speed = 205, high_speed = 210, max_speed = 255, R_max_speed = 255, L_max_speed = 225;
 
 
 //Using class "Motor" {methods = Forward, Backward, Stop, Speed, Status}
@@ -90,20 +90,22 @@ void setup() {
   MotorL.Forward();
   delay(1000);
 
-  int spd = 150;
+  int spd = 170;
 
   while (true) {
     ReadIR();
-    ReadSonar();
-
+    //ReadSonar();
+    //Straight();
     ShowMessges();
-
-    MotorR.Speed(spd);
-    MotorL.Speed(spd);
+    //
+    MotorR.Forward();
+    MotorL.Backward();
+    MotorR.Speed(200);
+    MotorL.Speed(200);
     delay(100);
-    spd += 5;
-
-    (spd == 255) ? spd = 150 : spd = spd ;
+    //spd += 5;
+    //
+    //(spd == 255) ? spd = 255 : spd = spd ;
 
   }
   //  delay(1000);
@@ -187,32 +189,36 @@ void HardRight() {
 
 //*** Sharp Left Turn - ok
 void SharpLeft() {
-  MotorL.Speed(0);
-  MotorR.Speed(max_speed);
+  MotorL.Release();
+  MotorR.Speed(180);
+  MotorL.Speed(180);
   do {
     ReadIR();
   }
   while ( C != 0);
+  MotorL.Forward();
 }
 
 //*** Sharp Right Turn - ok
 void SharpRight() {
-  MotorR.Speed(0);
-  MotorL.Speed(max_speed);
+  MotorR.Release();
+  MotorR.Speed(180);
+  MotorL.Speed(180);
   do {
     ReadIR();
   }
   while ( C != 0);
+  MotorR.Forward();
 }
 
 //*** 90d left turn
 void _90dLeft() {
-  Straight();
-  delay(TBT);
-  Neutral(); delay(10);
+//  Straight();
+//  delay(TBT);
+  Neutral(); delay(100);
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(max_speed); MotorR.Speed(max_speed);
-  delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
+  MotorL.Speed(170); MotorR.Speed(170);
+  //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   do {
     ReadIR();
   }
@@ -223,14 +229,14 @@ void _90dLeft() {
 
 //*** 90d Right Turn
 void _90dRight() {
-  Straight();
-  delay(TBT);
+//  Straight();
+//  delay(TBT);
   //(AIR < 5)?Straight():Neutral(); //if there is multiple line it will take the middle line
   Neutral(); delay(10);
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(max_speed); MotorR.Speed(max_speed);
+  MotorL.Speed(170); MotorR.Speed(170);
   //MotorL.Speed(max_speed); MotorR.Speed(0);
-  delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
+  //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   do {
     ReadIR();
   }
@@ -271,7 +277,7 @@ void _180dTurn() {
 void FollowTrack() {
   if (AIR == 4)//On track
   {
-    (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : SharpRight();
+    (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
     //(A == 0) ? HardLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : HardRight();
   }
   else if (AIR == 3) //
@@ -279,15 +285,14 @@ void FollowTrack() {
     (C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
   }
   else if (AIR == 2 || AIR == 1) {
-    //Beep(2, 100);
-    //(A == 1) ? _90dRight() : _90dLeft();
-    int temp = A;
-    //delay(2);//go 1 cm and read the track
-    ReadIR();
-    (AIR == 0) ? DefaultTurn() : ((temp == 1) ? _90dRight() : _90dLeft());
+    Straight();
+    delay(TBT);
+    (A == 1) ? _90dRight() : _90dLeft();
   }
   else if (AIR == 0)//multiple line
   {
+    Straight();
+    delay(TBT);
     DefaultTurn();
   }
   else if (AIR == 5)// White space
