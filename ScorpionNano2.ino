@@ -90,34 +90,16 @@ void setup() {
 
   int spd = 170;
   while (true) {
-//    Beep(1, 200);
-//    MotorL.Speed(50);
-//    MotorR.Speed(50);
-//    delay(2000);
-//    
-//    Beep(2, 200);
-//    MotorL.Speed(80);
-//    MotorR.Speed(80);
-//    delay(2000);
-// 
-//    Beep(3, 200);
-//    MotorL.Speed(120);
-//    MotorR.Speed(120);
-//    delay(2000);
-//    
-//    Beep(4, 200);
-//    MotorL.Speed(255);
-//    MotorR.Speed(255);
-//    delay(2000);
-//    
-//    MotorL.Speed(0);
-//    MotorR.Speed(0);
-//    
-//    Beep(1, 1000);
-
-    
     ReadIR();
-    FollowTrack();
+    if(R + L == 0){
+    FollowTrack(); 
+    }
+    else if(R + L == 2){
+      DefaultTurn();
+    }
+    else{
+      (R == 1) ? _90dRight() : (L == 1) ? _90dLeft() : ReadIR();
+    }
   }
   delay(1000);
 }
@@ -224,9 +206,9 @@ void _90dLeft() {
   Serial.println("_90dLeft");
   Current_Decision = "90d Left";
   Straight();
-  delay(200);
+  delay(250);
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(100); MotorR.Speed(100);
+  MotorL.Speed(80); MotorR.Speed(80);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   while(!(AIR == 4 && C == 0)){
     ReadIR();
@@ -240,9 +222,9 @@ void _90dRight() {
   Serial.println("_90dRight");
   Current_Decision = "90d Right";
   Straight(); 
-  delay(200); 
+  delay(250); 
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(100); MotorR.Speed(100);
+  MotorL.Speed(80); MotorR.Speed(80);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
     while(!(AIR == 4 && C == 0)){
     ReadIR();
@@ -285,15 +267,6 @@ void FollowTrack() {
     //(C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
   }
   else if (AIR == 2) {
-    Serial.println("Hey hey!!!");
-//    if(A + B == 2){
-//      Serial.println("_90dRight");
-//      _90dRight();
-//    }
-//    if( D + E == 2){
-//      Serial.println("_90dLeft");
-//      _90dLeft();
-//    }
     (C + D + E == 0) ? _90dRight() : (A + B + C == 0) ? _90dLeft() : ReadIR();
   }
   else if (AIR == 1) {
@@ -303,11 +276,6 @@ void FollowTrack() {
   {
     MotorL.Speed(0);
     MotorR.Speed(0);
-//    Straight();
-//    delay(TBT);
-//    Brake();
-//    ReadIR();
-//    (AIR == 0) ? Brake() : DefaultTurn();
   }
 
   else if (AIR == 5)// White space
