@@ -11,7 +11,7 @@
 
 String Default_Turn = "right";
 String Track_Color = "black";
-String Current_Decision = " ";
+String Current_Decision = "Straight";
 String Object = "Not Found";
 
 //Oled display
@@ -26,9 +26,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define IRB A1
 #define IRC A2
 #define IRD A3
-#define IRE A6
-#define IRF A7
-int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, AIR; //IR variable for store value
+#define IRE A7
+#define IR_RIGHT A4
+#define IR_LEFT A5
+int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, R = 0, L = 0, AIR = 0; //IR variable for store value
 
 #define BUZZER 13
 
@@ -45,7 +46,7 @@ int SonarA, SonarB;
 const int TST = 250; // Track searching time (FM - 180)
 const int _90dTtime = 0; // time need for turning 90 degree
 const int _180Ttime = 0; // time need for turning 180 degree
-const int TBT = 100; // time before turning (FM - 120)
+const int TBT = 0; // time before turning (FM - 120)
 const int TAT = 0; // time after taking turn for distracting from current track (FM - 35)
 
 //For asynchronous function
@@ -53,15 +54,9 @@ unsigned long TimeCount;
 unsigned long CurrentTime;
 unsigned long TimeLap;
 
-//#define touch_pin_numer T0
-//const int VALUE_THRESHOLD = 30;
-//int TOUCH_SENSOR_VALUE, dt = 1;//// default turn (1 = right, 0   = left)
-
-////GPIO PINS
-//int BUZZER = 15; // BUZZER
 
 //Motor Driver pins
-int ENA = 3, IN1 = 4, IN2 = 5, ENB = 6, IN3 = 7, IN4 = 8;// For Motor Driver
+int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;// For Motor Driver
 
 //Variables
 int DutyCycle = 0, min_speed = 200, med_speed = 205, high_speed = 210, max_speed = 255, R_max_speed = 255, L_max_speed = 225;
@@ -76,41 +71,55 @@ void setup() {
   Serial.begin(9600);
   pinMode(BUZZER, OUTPUT);
   Serial.println("TEST");
-  Beep(3, 500);
+  Beep(3, 250);
 
-  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
-  //  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  //  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-  //    Serial.println(F("SSD1306 allocation failed"));
-  //    for (;;); // Don't proceed, loop forever
-  //  }
-  // delay(1000);
+  //display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  //delay(1000);
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  //    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+  //      Serial.println(F("SSD1306 allocation failed"));
+  //      for (;;); // Don't proceed, loop forever
+  //    }
+
+  //ShowMessges();
+  delay(200);
 
   MotorR.Forward();
   MotorL.Forward();
-  delay(1000);
+  delay(200);
 
   int spd = 170;
+  while (true) {
+//    Beep(1, 200);
+//    MotorL.Speed(50);
+//    MotorR.Speed(50);
+//    delay(2000);
+//    
+//    Beep(2, 200);
+//    MotorL.Speed(80);
+//    MotorR.Speed(80);
+//    delay(2000);
+// 
+//    Beep(3, 200);
+//    MotorL.Speed(120);
+//    MotorR.Speed(120);
+//    delay(2000);
+//    
+//    Beep(4, 200);
+//    MotorL.Speed(255);
+//    MotorR.Speed(255);
+//    delay(2000);
+//    
+//    MotorL.Speed(0);
+//    MotorR.Speed(0);
+//    
+//    Beep(1, 1000);
 
-  while (false) {
+    
     ReadIR();
-    //ReadSonar();
-    //Straight();
-    //ShowMessges();
-    //
-    MotorR.Forward();
-    MotorL.Forward();
-    MotorR.Speed(255);
-    MotorL.Speed(255);
-    if(B == 0 && C == 0 && D == 0){
-          Beep(2, 100);
-    }
-    //spd += 5;
-    //
-    //(spd == 255) ? spd = 255 : spd = spd ;
-
+    FollowTrack();
   }
-  //  delay(1000);
+  delay(1000);
 }
 
 //*** Default turn
@@ -146,123 +155,110 @@ void Neutral() {
 
 //*** Straight Forward - ok
 void Straight() {
-  //MotorL.Forward(); MotorR.Forward();
-  MotorR.Speed(255);//left motor is bit damaged thats why used more duty cycle than right motor
-  MotorL.Speed(255);
+  Current_Decision = "Straight";
+  MotorR.Speed(R_max_speed);//left motor is bit damaged thats why used more duty cycle than right motor
+  MotorL.Speed(L_max_speed);
 }
 
 //*** Smooth Left Turn - ok
 void SmoothLeft() {
-  //MotorL.Forward(); MotorR.Forward();
-  MotorL.Speed(220);
-  MotorR.Speed(240);
+  Current_Decision = "Smooth Left";
+  MotorL.Speed(150);
+  MotorR.Speed(255);
 }
 
 //*** Smooth Right Turn - ok
 void SmoothRight() {
-  //MotorL.Forward(); MotorR.Forward();
-  MotorL.Speed(220);
-  MotorR.Speed(240);
+  Current_Decision = "Smooth Right";
+  MotorL.Speed(255);
+  MotorR.Speed(150);
 }
 
 
 //*** Medium Left Turn - ok
 void MedLeft() {
-  MotorL.Forward(); MotorR.Forward();
-  MotorL.Speed(220);
-  MotorR.Speed(250);
+  Current_Decision = "Med Left";
+  MotorL.Speed(100);
+  MotorR.Speed(255);
 }
 
 
 //*** Medium Right Turn - ok
 void MedRight() {
-  MotorL.Forward(); MotorR.Forward();
-  MotorL.Speed(250);
-  MotorR.Speed(220);
+  Current_Decision = "Med Right";
+  MotorL.Speed(255);
+  MotorR.Speed(100);
 }
 
 //hard left - ok
 void HardLeft() {
-  MotorL.Forward(); MotorR.Forward();
-  MotorL.Speed(210);
+  Current_Decision = "Hard Left";
+  MotorL.Speed(50);
   MotorR.Speed(255);
 }
 
 //Hard right - ok
 void HardRight() {
-  MotorL.Forward(); MotorR.Forward();
+  Current_Decision = "Hard Right";
   MotorL.Speed(255);
-  MotorR.Speed(210);
+  MotorR.Speed(50);
 
 }
 
 //*** Sharp Left Turn - ok
 void SharpLeft() {
-  //MotorL.Forward(); MotorR.Forward();
-  MotorL.Release();
-  MotorR.Speed(220);
-  MotorL.Speed(220);
-  do {
-    ReadIR();
-  }
-  while ( C != 0);
-  MotorL.Forward();
+  Current_Decision = "Sharp Left";
+  MotorR.Speed(255);
+  MotorL.Speed(0);
 }
 
 //*** Sharp Right Turn - ok
 void SharpRight() {
-  //MotorL.Forward(); MotorR.Forward();
-  MotorR.Release();
-  MotorR.Speed(220);
-  MotorL.Speed(220);
-  do {
-    ReadIR();
-  }
-  while ( C != 0);
-  MotorR.Forward();
+  Current_Decision = "Sharp Right";
+  MotorR.Speed(0);
+  MotorL.Speed(255);
 }
 
 //*** 90d left turn
 void _90dLeft() {
-//  Straight();
-//  delay(TBT);
-  Neutral(); 
+  Serial.println("_90dLeft");
+  Current_Decision = "90d Left";
+  Straight();
+  delay(200);
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(230); MotorR.Speed(220);
+  MotorL.Speed(100); MotorR.Speed(100);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  do {
+  while(!(AIR == 4 && C == 0)){
     ReadIR();
   }
-  while (AIR == 5);
   Neutral();
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** 90d Right Turn
 void _90dRight() {
-//  Straight();
-//  delay(TBT);
-  //(AIR < 5)?Straight():Neutral(); //if there is multiple line it will take the middle line
-  Neutral();
+  Serial.println("_90dRight");
+  Current_Decision = "90d Right";
+  Straight(); 
+  delay(200); 
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(230); MotorR.Speed(220);
-  //MotorL.Speed(max_speed); MotorR.Speed(0);
+  MotorL.Speed(100); MotorR.Speed(100);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  do {
+    while(!(AIR == 4 && C == 0)){
     ReadIR();
   }
-  while (AIR == 5);
-  Neutral(); 
+  Neutral();
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** 180d turn on place
 void _180dTurn() {
+  Current_Decision = "180d Turn";
   //Serial.println("Taking U turn"); delay(2000);
   Neutral(); // Both motor stop with neutral gear
   delay(10);
   MotorL.Forward(); MotorR.Backward();// Rotate on place
-  MotorR.Speed(max_speed); MotorL.Speed(max_speed);
+  MotorR.Speed(100); MotorL.Speed(100);
   do {
     ReadIR();
   }
@@ -273,121 +269,82 @@ void _180dTurn() {
   MotorL.Forward(); MotorR.Forward();
 }
 
-//int Beep(int n, int dly) {
-//  int i = 0;
-//  while (i < n) {
-//    digitalWrite(BUZZER, HIGH);
-//    delay(dly);
-//    digitalWrite(BUZZER, LOW);
-//    delay(dly);
-//    i++;
-//  }
-//}
-//
+
 //Follow track
 void FollowTrack() {
   if (AIR == 4)//On track
   {
-    (A == 0) ? SharpLeft() : (B == 0) ? HardLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? HardRight() : (E == 0) ? SharpRight() : ReadIR(); 
+    (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
+    //(A == 0) ? _90dLeft() : (B == 0) ? SharpLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? SharpRight() : (E == 0) ? _90dRight() : ReadIR();
     //(A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
   }
   else if (AIR == 3) //
-  {   
-    (C + D == 0) ? MedRight() : (D + E == 0) ? SharpRight() : (C + B == 0) ? MedLeft() : (A + B == 0) ? SharpLeft() : ReadIR();
+  {
+    (C + D == 0) ? SmoothRight()  : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : (A + C == 0) ? _90dLeft() : (C + E == 0) ? _90dRight() : ReadIR();
+    //(C + D == 0) ? HardRight() : (A + C == 0) ? _90dLeft() : (C + E == 0) ? _90dRight() : (D + E == 0) ? _90dRight() : (C + B == 0) ? HardLeft() : (A + B == 0) ? _90dLeft() : ReadIR();
     //(C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
   }
-  else if (AIR == 2 || AIR == 1) {
-    Straight();
-    delay(TBT);
-    (A == 1) ? _90dRight() : _90dLeft();
+  else if (AIR == 2) {
+    Serial.println("Hey hey!!!");
+//    if(A + B == 2){
+//      Serial.println("_90dRight");
+//      _90dRight();
+//    }
+//    if( D + E == 2){
+//      Serial.println("_90dLeft");
+//      _90dLeft();
+//    }
+    (C + D + E == 0) ? _90dRight() : (A + B + C == 0) ? _90dLeft() : ReadIR();
+  }
+  else if (AIR == 1) {
+    A == 0 ? _90dLeft() : _90dRight();
   }
   else if (AIR == 0)//multiple line
   {
-    Straight();
-    delay(TBT);
-    DefaultTurn();
-    do{
-      ReadIR();
-    }
-    while(AIR == 0);
+    MotorL.Speed(0);
+    MotorR.Speed(0);
+//    Straight();
+//    delay(TBT);
+//    Brake();
+//    ReadIR();
+//    (AIR == 0) ? Brake() : DefaultTurn();
   }
+
   else if (AIR == 5)// White space
   {
-    //Serial.println("white space!");delay(500);
-    Straight(); //go 14cm forward
-    TimeCount = millis();
-    CurrentTime = TimeCount;
-    do {
-      TimeLap = TimeCount - CurrentTime;
-      TimeCount = millis();
-      Serial.print("TimeLap:");
-      Serial.println(TimeLap);
-      ReadIR();
-    }
-    while ((TimeLap <= TST) && AIR == 5); //if any way found or the time is up
-    //delay(TST);
-    (AIR == 5) ? _180dTurn() : Brake();
-    TimeLap = 0;
+   Straight();
   }
 }
 
-
-//***Avoid obstacle if found
-//for default turn == left
-void AvoidObstacle() {
-  int max_spd, min_spd;
-  if (Track_Color == "right") {
-    max_spd = 0;
-    min_spd = 255;
-  }
-  else {
-    max_spd = 255;
-    min_spd = 0;
-  }
-  Brake();
-  Serial.println("Obstacle found!"); delay(500);
-  MotorL.Speed(min_spd); MotorR.Speed(max_spd);// Right turn
-  delay(TST);
-  MotorR.Speed(min_spd); MotorL.Speed(max_spd);// Left turn
-  delay(TST);
-  MotorR.Speed(255); MotorL.Speed(255);// Straight forward
-  delay(TST);
-  MotorR.Speed(min_spd); MotorL.Speed(max_spd);// Right turn
-  delay(TST);
-  do {
-    MotorR.Speed(255); MotorL.Speed(255);// Straight
-    ReadIR();
-  }
-  while (AIR == 5);
-  //Brake();
-  Serial.println("Obstacle skiped!"); delay(500);
-}
 
 //*** Read all IR sensor
 void ReadIR() {
-  A = analogRead(IRA); A = A / 1000; //(A == 0) ? A = 0 : A = 1; // 0 = black, 1 = white
-  B = analogRead(IRB); B = B / 1000; //(B == 0) ? B = 0 : B = 1;// 0 = black, 1 = white
-  C = analogRead(IRC); C = C / 1000; //(C == 0) ? C = 0 : C = 1;// 0 = black, 1 = white
-  D = analogRead(IRD); D = D / 1000; //(D == 0) ? D = 0 : D = 1;// 0 = black, 1 = white
-  E = analogRead(IRE); E = E / 1000; //(E == 0) ? E = 0 : E = 1;// 0 = black, 1 = white
-  //F = analogRead(IRF); F = F / 1000; //(F == 0) ? F = 0 : F = 1;// 0 = black, 1 = white
+  A = analogRead(IRA); A = A / 600; //(A == 0) ? A = 0 : A = 1; // 0 = black, 1 = white
+  B = analogRead(IRB); B = B / 600; //(B == 0) ? B = 0 : B = 1;// 0 = black, 1 = white
+  C = analogRead(IRC); C = C / 600; //(C == 0) ? C = 0 : C = 1;// 0 = black, 1 = white
+  D = analogRead(IRD); D = D / 600; //(D == 0) ? D = 0 : D = 1;// 0 = black, 1 = white
+  E = analogRead(IRE); E = E / 600; //(E == 0) ? E = 0 : E = 1;// 0 = black, 1 = white
+  R = analogRead(IR_RIGHT); R = R / 600; //(D == 0) ? D = 0 : D = 1;// 0 = white, 1 = black
+  L = analogRead(IR_LEFT); L = L / 600; //(E == 0) ? E = 0 : E = 1;// 0 = white, 1 = black
   AIR = A + B + C + D + E;
-
-//  Serial.println(" ");
-//  Serial.print(":A=");
-//  Serial.print(A);
-//  Serial.print(":B=");
-//  Serial.print(B);
-//  Serial.print(":C=");
-//  Serial.print(C);
-//  Serial.print(":D=");
-//  Serial.print(D);
-//  Serial.print(":E=");
-//  Serial.print(E);
-//  Serial.print(":F=");
-//  Serial.print(F);
-//  Serial.print(":AIR=");
-//  Serial.print(AIR);
+  //ShowMessges();
+  Serial.println(" ");
+  Serial.print(":A=");
+  Serial.print(A);
+  Serial.print(":B=");
+  Serial.print(B);
+  Serial.print(":C=");
+  Serial.print(C);
+  Serial.print(":D=");
+  Serial.print(D);
+  Serial.print(":E=");
+  Serial.print(E);
+  Serial.print(":R=");
+  Serial.print(R);
+  Serial.print(":L=");
+  Serial.print(L);
+  Serial.print(":AIR=");
+  Serial.print(AIR);
 }
 
 void ReadSonar() {
@@ -401,45 +358,45 @@ void ReadSonar() {
   Serial.println(SonarB);
 }
 
-void ShowMessges() {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-
-  // Display Motor Speed
-  display.setCursor(0, 0);
-  display.print(Track_Color);
-  display.print(" Line :");
-
-  display.print(" Def. ");
-  display.print(Default_Turn);
-
-
-  // Display IR value
-  display.setCursor(0, 10);
-  display.print("A:"); display.print(String(A));
-  display.print(" B:"); display.print(String(B));
-  display.print(" C:"); display.print(String(C));
-  display.print(" D:"); display.print(String(D));
-  display.print(" E:"); display.print(String(E));
-
-  // Display Sonar Value;
-  display.setCursor(0, 20);
-  display.print("S2:"); display.print(String(SonarB));
-  display.print(" S1:"); display.print(String(SonarA));
-
-  // Display Decision Value;
-  display.setCursor(20, 30);
-  display.print("**Decision**");
-
-  display.setCursor(0, 40);
-  display.print("Object : "); display.print(Object);
-
-  display.setCursor(0, 50);
-  display.print("Going : "); display.print(Current_Decision);
-
-  display.display();                    // displays content in buffer
-}
+//void ShowMessges() {
+//  display.clearDisplay();
+//  display.setTextSize(1);
+//  display.setTextColor(WHITE);
+//
+//  // Display Motor Speed
+//  display.setCursor(0, 0);
+//  display.print(Track_Color);
+//  display.print(" Line :");
+//
+//  display.print(" Def. ");
+//  display.print(Default_Turn);
+//
+//
+//  // Display IR value
+//  display.setCursor(0, 10);
+//  display.print("A:"); display.print(String(A));
+//  display.print(" B:"); display.print(String(B));
+//  display.print(" C:"); display.print(String(C));
+//  display.print(" D:"); display.print(String(D));
+//  display.print(" E:"); display.print(String(E));
+//
+//  // Display Sonar Value;
+//  display.setCursor(0, 20);
+//  display.print("S2:"); display.print(String(SonarB));
+//  display.print(" S1:"); display.print(String(SonarA));
+//
+//  // Display Decision Value;
+//  display.setCursor(20, 30);
+//  display.print("**Decision**");
+//
+//  display.setCursor(0, 40);
+//  display.print("Object : "); display.print(Object);
+//
+//  display.setCursor(0, 50);
+//  display.print("Going : "); display.print(Current_Decision);
+//
+//  display.display();                    // displays content in buffer
+//}
 
 
 void AsyncWait(int interval) {
