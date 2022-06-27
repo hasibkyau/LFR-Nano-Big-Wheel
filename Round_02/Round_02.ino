@@ -9,6 +9,7 @@
 
 String Default_Turn = "right";
 String Track_Color = "black";
+String Object = "Not Found";
 
 //IR array
 #define IRA A0
@@ -22,12 +23,27 @@ int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, R = 0, L = 0, AIR = 0, RL = 0; //I
 
 #define BUZZER 13
 
+//Sonar Sensor
+#define S1Trig 9
+#define S1Echo 10
+#define S2Trig 11
+#define S2Echo 12
+HCSR04 SonarR(S1Trig, S1Echo); //Right Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
+HCSR04 SonarL(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
+int SonarA, SonarB;
+
 //Speed and time tuner
 const int TST = 250; // Track searching time (FM - 180)
 const int _90dTtime = 0; // time need for turning 90 degree
 const int _180Ttime = 0; // time need for turning 180 degree
 const int TBT = 150; // time before turning (FM - 120)
 const int TAT = 0; // time after taking turn for distracting from current track (FM - 35)
+
+//For asynchronous function
+unsigned long TimeCount;
+unsigned long CurrentTime;
+unsigned long TimeLap;
+
 
 //Motor Driver pins
 int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;// For Motor Driver
@@ -46,7 +62,7 @@ void setup() {
   pinMode(BUZZER, OUTPUT);
   pinMode(IR_RIGHT, INPUT);
   pinMode(IR_LEFT, INPUT);
-  Serial.println("Loading.....");
+  Serial.println("TEST");
   Beep(3, 250);
 
   delay(200);
@@ -62,18 +78,28 @@ void setup() {
       if (AIR == 4)//On track
       {
         (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
+        //(A == 0) ? _90dLeft() : (B == 0) ? SharpLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? SharpRight() : (E == 0) ? _90dRight() : ReadIR();
+        //(A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
       }
       else if (AIR == 3) //
       {
         (C + D == 0) ? SmoothRight()  : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
+        //(C + D == 0) ? HardRight() : (A + C == 0) ? _90dLeft() : (C + E == 0) ? _90dRight() : (D + E == 0) ? _90dRight() : (C + B == 0) ? HardLeft() : (A + B == 0) ? _90dLeft() : ReadIR();
+        //(C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
       }
+
+      //  else if (AIR == 2) {
+      //    (C + D + E == 0) ? SharpRight() : (A + B + C == 0) ? SharpLeft() : ReadIR();
+      //  }
+      //  else if (AIR == 1) {
+      //    A == 0 ? SharpLeft() : SharpRight();
+      //  }
 
       else if (AIR == 0)//multiple line
       {
         MotorL.Speed(0);
         MotorR.Speed(0);
       }
-
       else if (AIR == 5)// White space
       {
         Straight();
@@ -87,16 +113,9 @@ void setup() {
   delay(1000);
 }
 
-
-
-
-
-
-
-
 //*** Default turn
 void DefaultTurn() {
-  (Default_Turn == "right") ? _90dRight() : _90dLeft();
+  (Track_Color == "right") ? _90dRight() : _90dLeft();
 }
 
 void loop() {
@@ -223,6 +242,29 @@ void _90dRight() {
   MotorL.Forward(); MotorR.Forward();
 }
 
+//*** 180d turn on place
+void _180dTurn() {
+  Neutral(); // Both motor stop with neutral gear
+  delay(10);
+  MotorL.Forward(); MotorR.Backward();// Rotate on place
+  MotorR.Speed(100); MotorL.Speed(100);
+  do {
+    ReadIR();
+  }
+  while (AIR == 5); // finish 180d ?
+  Brake(); // Both motor stop with neutral gear
+  Neutral();
+  delay(10);// for refreshin dirver logic
+  MotorL.Forward(); MotorR.Forward();
+}
+
+
+//Follow track
+void FollowTrack() {
+
+}
+
+
 //*** Read all IR sensor
 void ReadIR() {
   A = analogRead(IRA); A = A / 600; //(A == 0) ? A = 0 : A = 1; // 0 = black, 1 = white
@@ -252,6 +294,30 @@ void ReadIR() {
   Serial.print(L);
   Serial.print(":AIR=");
   Serial.print(AIR);
+}
+
+void ReadSonar() {
+  SonarA = SonarR.dist();
+  delay(68);
+  SonarB = SonarL.dist();
+  delay(68);
+  Serial.print(" :SonarA= ");
+  Serial.print(SonarA);
+  Serial.print(" :SonarB=");
+  Serial.println(SonarB);
+}
+
+void AsyncWait(int interval) {
+  TimeCount = millis();
+  CurrentTime = TimeCount;
+  do {
+    TimeLap = TimeCount - CurrentTime;
+    TimeCount = millis();
+    Serial.print("TimeLap:");
+    Serial.println(TimeLap);
+    delay(100);
+  }
+  while (TimeLap <= interval);
 }
 
 int Beep(int n, int dly) {
