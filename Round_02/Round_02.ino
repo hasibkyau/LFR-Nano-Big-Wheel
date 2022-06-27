@@ -62,7 +62,7 @@ void setup() {
   pinMode(BUZZER, OUTPUT);
   pinMode(IR_RIGHT, INPUT);
   pinMode(IR_LEFT, INPUT);
-  Serial.println("TEST");
+  Serial.println("Loading...");
   Beep(3, 250);
 
   delay(200);
@@ -105,21 +105,38 @@ void setup() {
         // Go forward for finding track
         MotorL.Speed(200);
         MotorR.Speed(255);
-        int interval = 500; // searching time
-        int TimeCount = millis(); // time count
-        int CurrentTime = TimeCount;
-        do {
-          TimeLap = TimeCount - CurrentTime;
-          TimeCount = millis();
-          ReadIR();
+        AsyncWait(400); // go 15 cm
+        if (AIR == 5) { // still white space?
+          U_Turn(1600); // search sides
+          if (AIR == 5) { // still white space?
+            MotorL.Speed(200);
+            MotorR.Speed(255);
+            AsyncWait(400); // go more 15 cm
+            if (AIR == 5) { // if still white space take U turn and go straight to 30 cm
+              U_Turn(800);
+              AsyncWait(800);
+            }
+          }
         }
-        while (TimeLap < interval && AIR == 5); // if track found within time or the time is out then break the loop
-        (AIR == 5) ? U_Turn() : ReadIR(); // if there is no track turn back
+        //(AIR == 5) ? U_Turn(1800) : ReadIR(); // if there is no track turn back
       }
 
     }
-    else {
-      (RL == 2) ? DefaultTurn() : (R == 1) ? _90dRight() : (L == 1) ? _90dLeft() : ReadIR();
+    else if (RL == 2) {
+      int interval = 100;
+      int TimeCount = millis(); // time count
+      int CurrentTime = TimeCount;
+      do {
+        TimeLap = TimeCount - CurrentTime;
+        TimeCount = millis();
+        ReadIR();
+      }
+      while (TimeLap < interval && RL == 2);
+      ReadIR();
+      (RL == 2) ? Brake() : DefaultTurn();
+    }
+    else if (RL == 1) {
+      (R == 1) ? _90dRight() : _90dLeft();
     }
   }
   delay(1000);
@@ -147,20 +164,20 @@ void Neutral() {
 
 //*** Straight Forward - ok
 void Straight() {
-  MotorR.Speed(R_max_speed);//left motor is bit damaged thats why used more duty cycle than right motor
-  MotorL.Speed(L_max_speed);
+  MotorL.Speed(200);
+  MotorR.Speed(255);//Right motor is bit damaged thats why used more duty cycle than right motor
 }
 
 //*** Smooth Left Turn - ok
 void SmoothLeft() {
-  MotorL.Speed(100);
+  MotorL.Speed(120);
   MotorR.Speed(255);
 }
 
 //*** Smooth Right Turn - ok
 void SmoothRight() {
   MotorL.Speed(255);
-  MotorR.Speed(100);
+  MotorR.Speed(150);
 }
 
 
@@ -174,13 +191,13 @@ void MedLeft() {
 //*** Medium Right Turn - ok
 void MedRight() {
   MotorL.Speed(255);
-  MotorR.Speed(50);
+  MotorR.Speed(80);
 }
 
 //hard left - ok
 void HardLeft() {
   MotorL.Speed(0);
-  MotorR.Speed(200);
+  MotorR.Speed(255);
 }
 
 //Hard right - ok
@@ -192,81 +209,90 @@ void HardRight() {
 
 //*** Sharp Left Turn - ok
 void SharpLeft() {
-  Neutral();
-  delay(10);
-  MotorR.Speed(80);
-  MotorL.Speed(80);
   MotorR.Forward(); MotorL.Backward();
+  MotorR.Speed(100);
+  MotorL.Speed(100);
+
+
   while (C == 1) {
     ReadIR();
   }
-  Neutral();
-  delay(10);
+
+  //  Neutral();
+  //  delay(10);
+
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** Sharp Right Turn - ok
 void SharpRight() {
-  Neutral();
-  delay(10);
-  MotorR.Speed(80);
-  MotorL.Speed(80);
   MotorL.Forward(); MotorR.Backward();
+  MotorR.Speed(120);
+  MotorL.Speed(100);
+
+
   while (C == 1) {
     ReadIR();
   }
-  Neutral();
-  delay(10);
+
+  //  Neutral();
+  //  delay(10);
+
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** 90d left turn
 void _90dLeft() {
   Serial.println("_90dLeft");
-  Straight();
-  delay(TBT);
-  ReadIR();
-  MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(150); MotorR.Speed(150);
-  //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  //  while (!(AIR == 4 && C == 0)) {
-  while (AIR == 5) {
+  while (AIR != 5) {
     ReadIR();
+    Straight();
   }
-  Neutral();
+  MotorR.Forward(); MotorL.Backward();
+  MotorL.Speed(100); MotorR.Speed(120);
+  AsyncWait(800);
+  //  while (AIR == 5) {
+  //    ReadIR();
+  //  }
+  //  Neutral();
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** 90d Right Turn
 void _90dRight() {
   Serial.println("_90dRight");
-  Straight();
-  delay(TBT);
-  ReadIR();
-  MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(150); MotorR.Speed(150);
-  //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  //  while (!(AIR == 4 && C == 0)) {
-  while (AIR == 5) {
+  while (AIR != 5) {
     ReadIR();
+    Straight();
   }
-  Neutral();
+  MotorR.Backward(); MotorL.Forward();
+  MotorL.Speed(100); MotorR.Speed(120);
+  AsyncWait(800);
+  //  while (AIR == 5) {
+  //    ReadIR();
+  //  }
+  //  Neutral();
   MotorL.Forward(); MotorR.Forward();
 }
 
 //*** U_Turn turn on place
-void U_Turn() {
+void U_Turn(int Time) {
   Neutral(); // Both motor stop with neutral gear
   delay(10);
   MotorL.Forward(); MotorR.Backward();// Rotate on place
   MotorR.Speed(120); MotorL.Speed(100);
-  AsyncWait(900); // [1800mls for 360degree]Turning until it found the track or it is on position of 180 degree
-  if(AIR == 5)
-  {
-      MotorL.Forward(); MotorR.Forward();
-      MotorL.Speed(200); MotorR.Speed(200);
-      AsyncWait(500); // go ahead until you find the track
-  }
+  AsyncWait(Time); // [1800mls for 360degree]Turning until it found the track or it is on position of 180 degree
+  Brake();
+  ReadIR();
+  MotorL.Forward(); MotorR.Forward();
+
+  //  if(AIR == 5)
+  //  {
+  //      MotorL.Forward(); MotorR.Forward();
+  //      MotorL.Speed(200); MotorR.Speed(200);
+  //      AsyncWait(500); // go ahead until you find the track
+  //  }
+
 }
 
 
