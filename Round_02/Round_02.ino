@@ -5,21 +5,23 @@
 #include <Wire.h>
 #include <HCSR04.h>
 
-String Default_Turn = "right", Track_Color = "black", Object = "Not Found";
+String Default_Turn = "right",  Object = "Not Found";
+//String Track_Color = "black";
+String Track_Color = "white";
 
-//***VARIABLES FOR IR SENSOR 
+//***VARIABLES FOR IR SENSOR
 int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A7, IR_RIGHT = 2, IR_LEFT = 9;//IR Pins
 int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, R = 0, L = 0, AIR = 0, RL = 0; //IR variable for store value
 
 #define BUZZER 13
 
-//***VARIABLES FOR SONAR SENSOR 
+//***VARIABLES FOR SONAR SENSOR
 int S1Trig = 9, S1Echo = 10, S2Trig = 11, S2Echo = 12;//Sonar Sensor Pins
 int SonarA, SonarB;//Store sonar data
 HCSR04 SonarR(S1Trig, S1Echo); //Right Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
 HCSR04 SonarL(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
 
-//***VARIABLES FOR MOTOR DRIVER 
+//***VARIABLES FOR MOTOR DRIVER
 int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;//Pins For Motor Driver
 Motor MotorR(ENA, IN1, IN2);  // Right Motor - (IN1, IN2, en, pwm channel)// Motor1 declaration
 Motor MotorL(ENB, IN3, IN4);  // Left Motor - (inputpIN1, inputpIN2, enablepin, pwmChannel[0-18])// Motor2 declaration
@@ -198,8 +200,18 @@ void ReadIR() {
   E = analogRead(IRE); E = E / 600; //(E == 0) ? E = 0 : E = 1;// 0 = black, 1 = white
   R = digitalRead(IR_RIGHT); //R = R / 600; //(D == 0) ? D = 0 : D = 1;// 0 = white, 1 = black
   L = digitalRead(IR_LEFT); //L = L / 600; //(E == 0) ? E = 0 : E = 1;// 0 = white, 1 = black
+  if (Track_Color == "white") {
+    A = abs(A - 1);
+    B = abs(B - 1);
+    C = abs(C - 1);
+    D = abs(D - 1);
+    E = abs(E - 1);
+    R = abs(R - 1);
+    L = abs(L - 1);
+  }
   RL = R + L;
   AIR = A + B + C + D + E;
+
 
   Serial.println(" ");
   Serial.print(":A=");
