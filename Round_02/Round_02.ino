@@ -55,7 +55,7 @@ void setup() {
 
     else if (RL == 2) {
       if (AIR == 0) {
-        delay(100);
+        delay(50);
         ReadIR();
         (AIR == 0 && RL == 2) ? Brake() : DefaultTurn();
       }
