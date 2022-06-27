@@ -117,7 +117,13 @@ void setup() {
 
     }
     else {
-      (RL == 2) ? DefaultTurn() : (R == 1) ? _90dRight() : (L == 1) ? _90dLeft() : ReadIR();
+      if(AIR = 0){
+        Straight();
+      }
+      else{
+        (RL == 2) ? DefaultTurn() : (R == 1) ? _90dRight() : (L == 1) ? _90dLeft() : ReadIR();
+      }
+      
     }
   }
   delay(1000);
@@ -147,7 +153,7 @@ void Neutral() {
 void Straight() {
   Current_Decision = "Straight";
   MotorR.Speed(R_max_speed);//left motor is bit damaged thats why used more duty cycle than right motor
-  MotorL.Speed(L_max_speed);
+  MotorL.Speed(L_max_speed - 50);
 }
 
 //*** Smooth Left Turn - ok
@@ -230,10 +236,10 @@ void _90dLeft() {
   Serial.println("_90dLeft");
   Current_Decision = "90d Left";
   Straight();
-  delay(250);
+  delay(100);
   ReadIR();
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(80); MotorR.Speed(80);
+  MotorL.Speed(100); MotorR.Speed(100);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   while (!(AIR == 4 && C == 0)) {
     ReadIR();
@@ -247,10 +253,10 @@ void _90dRight() {
   Serial.println("_90dRight");
   Current_Decision = "90d Right";
   Straight();
-  delay(250);
+  delay(100);
   ReadIR();
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(80); MotorR.Speed(80);
+  MotorL.Speed(100); MotorR.Speed(100);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
   while (!(AIR == 4 && C == 0)) {
     ReadIR();
