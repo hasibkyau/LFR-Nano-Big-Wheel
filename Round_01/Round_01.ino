@@ -46,7 +46,7 @@ int SonarA, SonarB;
 const int TST = 250; // Track searching time (FM - 180)
 const int _90dTtime = 0; // time need for turning 90 degree
 const int _180Ttime = 0; // time need for turning 180 degree
-const int TBT = 0; // time before turning (FM - 120)
+const int TBT = 150; // time before turning (FM - 120)
 const int TAT = 0; // time after taking turn for distracting from current track (FM - 35)
 
 //For asynchronous function
@@ -230,12 +230,13 @@ void _90dLeft() {
   Serial.println("_90dLeft");
   Current_Decision = "90d Left";
   Straight();
-  delay(250);
+  delay(TBT);
   ReadIR();
   MotorR.Forward(); MotorL.Backward();
-  MotorL.Speed(80); MotorR.Speed(80);
+  MotorL.Speed(150); MotorR.Speed(150);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  while (!(AIR == 4 && C == 0)) {
+  //  while (!(AIR == 4 && C == 0)) {
+  while (AIR == 5) {
     ReadIR();
   }
   Neutral();
@@ -247,12 +248,13 @@ void _90dRight() {
   Serial.println("_90dRight");
   Current_Decision = "90d Right";
   Straight();
-  delay(250);
+  delay(TBT);
   ReadIR();
   MotorL.Forward(); MotorR.Backward();
-  MotorL.Speed(80); MotorR.Speed(80);
+  MotorL.Speed(150); MotorR.Speed(150);
   //delay(TAT);// if this is a 4 line it will distrac from the middle line within 10 mili second
-  while (!(AIR == 4 && C == 0)) {
+  //  while (!(AIR == 4 && C == 0)) {
+  while (AIR == 5) {
     ReadIR();
   }
   Neutral();
