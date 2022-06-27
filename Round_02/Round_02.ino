@@ -1,146 +1,72 @@
 // Line follower Robot : Scorpion 2.0
 // By : Md. Hasibur Rahman, KYAU
-
-//Libraries
 #include "Scorpion.h"
 #include <SPI.h>
 #include <Wire.h>
 #include <HCSR04.h>
 
-String Default_Turn = "right";
-String Track_Color = "black";
-String Object = "Not Found";
+String Default_Turn = "right", Track_Color = "black", Object = "Not Found";
 
-//IR array
-#define IRA A0
-#define IRB A1
-#define IRC A2
-#define IRD A3
-#define IRE A7
-#define IR_RIGHT 2
-#define IR_LEFT 9
+//***VARIABLES FOR IR SENSOR 
+int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A7, IR_RIGHT = 2, IR_LEFT = 9;//IR Pins
 int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, R = 0, L = 0, AIR = 0, RL = 0; //IR variable for store value
 
 #define BUZZER 13
 
-//Sonar Sensor
-#define S1Trig 9
-#define S1Echo 10
-#define S2Trig 11
-#define S2Echo 12
+//***VARIABLES FOR SONAR SENSOR 
+int S1Trig = 9, S1Echo = 10, S2Trig = 11, S2Echo = 12;//Sonar Sensor Pins
+int SonarA, SonarB;//Store sonar data
 HCSR04 SonarR(S1Trig, S1Echo); //Right Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
 HCSR04 SonarL(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
-int SonarA, SonarB;
 
-//Speed and time tuner
-const int TST = 250; // Track searching time (FM - 180)
-const int _90dTtime = 0; // time need for turning 90 degree
-const int _180Ttime = 0; // time need for turning 180 degree
-const int TBT = 150; // time before turning (FM - 120)
-const int TAT = 0; // time after taking turn for distracting from current track (FM - 35)
-
-//For asynchronous function
-unsigned long TimeCount;
-unsigned long CurrentTime;
-unsigned long TimeLap;
-
-
-//Motor Driver pins
-int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;// For Motor Driver
-
-//Variables
-int DutyCycle = 0, min_speed = 200, med_speed = 205, high_speed = 210, max_speed = 255, R_max_speed = 255, L_max_speed = 225;
-
-
-//Using class "Motor" {methods = Forward, Backward, Stop, Speed, Status}
-Motor MotorR(ENA, IN1, IN2);  // Right Motor - (IN1, IN2, en, pwm channel)
-Motor MotorL(ENB, IN3, IN4);  // Left Motor - (inputpIN1, inputpIN2, enablepin, pwmChannel[0-18])
+//***VARIABLES FOR MOTOR DRIVER 
+int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;//Pins For Motor Driver
+Motor MotorR(ENA, IN1, IN2);  // Right Motor - (IN1, IN2, en, pwm channel)// Motor1 declaration
+Motor MotorL(ENB, IN3, IN4);  // Left Motor - (inputpIN1, inputpIN2, enablepin, pwmChannel[0-18])// Motor2 declaration
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
+  Serial.println("Loading...");
   pinMode(BUZZER, OUTPUT);
   pinMode(IR_RIGHT, INPUT);
   pinMode(IR_LEFT, INPUT);
-  Serial.println("Loading...");
-  Beep(3, 250);
-
-  delay(200);
-
   MotorR.Forward();
   MotorL.Forward();
-  delay(200);
+  Beep(3, 200);
 
-  int spd = 170;
+
   while (true) {
     ReadIR();
     if (RL == 0) {
       if (AIR == 4)//On track
       {
         (A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
-        //(A == 0) ? _90dLeft() : (B == 0) ? SharpLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? SharpRight() : (E == 0) ? _90dRight() : ReadIR();
-        //(A == 0) ? SharpLeft() : (B == 0) ? MedLeft() : (C == 0 ) ? Straight() : ( D == 0 ) ? MedRight() : (E == 0) ? SharpRight() : ReadIR();
       }
       else if (AIR == 3) //
       {
         (C + D == 0) ? SmoothRight()  : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
-        //(C + D == 0) ? HardRight() : (A + C == 0) ? _90dLeft() : (C + E == 0) ? _90dRight() : (D + E == 0) ? _90dRight() : (C + B == 0) ? HardLeft() : (A + B == 0) ? _90dLeft() : ReadIR();
-        //(C + D == 0) ? SmoothRight() : (D + E == 0) ? HardRight() : (C + B == 0) ? SmoothLeft() : (A + B == 0) ? HardLeft() : ReadIR();
       }
 
-      //  else if (AIR == 2) {
-      //    (C + D + E == 0) ? SharpRight() : (A + B + C == 0) ? SharpLeft() : ReadIR();
-      //  }
-      //  else if (AIR == 1) {
-      //    A == 0 ? SharpLeft() : SharpRight();
-      //  }
-
-      else if (AIR == 0)//multiple line
-      {
-        MotorL.Speed(0);
-        MotorR.Speed(0);
-      }
       else if (AIR == 5)// White space
       {
-        // Go forward for finding track
-        MotorL.Speed(200);
-        MotorR.Speed(255);
-        AsyncWait(400); // go 15 cm
-        if (AIR == 5) { // still white space?
-          U_Turn(1600); // search sides
-          if (AIR == 5) { // still white space?
-            MotorL.Speed(200);
-            MotorR.Speed(255);
-            AsyncWait(400); // go more 15 cm
-            if (AIR == 5) { // if still white space take U turn and go straight to 30 cm
-              U_Turn(800);
-              AsyncWait(800);
-            }
-          }
-        }
-        //(AIR == 5) ? U_Turn(1800) : ReadIR(); // if there is no track turn back
+        FindTrack();
       }
+    }
 
-    }
     else if (RL == 2) {
-      int interval = 100;
-      int TimeCount = millis(); // time count
-      int CurrentTime = TimeCount;
-      do {
-        TimeLap = TimeCount - CurrentTime;
-        TimeCount = millis();
+      if (AIR == 0) {
+        delay(100);
         ReadIR();
+        (AIR == 0 && RL == 2) ? Brake() : DefaultTurn();
       }
-      while (TimeLap < interval && RL == 2);
-      ReadIR();
-      (RL == 2) ? Brake() : DefaultTurn();
     }
+
     else if (RL == 1) {
       (R == 1) ? _90dRight() : _90dLeft();
     }
   }
-  delay(1000);
 }
+
 
 //*** Default turn
 void DefaultTurn() {
@@ -162,33 +88,33 @@ void Neutral() {
   MotorL.Release();
 }
 
-//*** Straight Forward - ok
+//*** Straight Forward
 void Straight() {
   MotorL.Speed(200);
   MotorR.Speed(255);//Right motor is bit damaged thats why used more duty cycle than right motor
 }
 
-//*** Smooth Left Turn - ok
+//*** Smooth Left Turn
 void SmoothLeft() {
   MotorL.Speed(120);
   MotorR.Speed(255);
 }
 
-//*** Smooth Right Turn - ok
+//*** Smooth Right Turn
 void SmoothRight() {
   MotorL.Speed(255);
   MotorR.Speed(150);
 }
 
 
-//*** Medium Left Turn - ok
+//*** Medium Left Turn
 void MedLeft() {
   MotorL.Speed(50);
   MotorR.Speed(255);
 }
 
 
-//*** Medium Right Turn - ok
+//*** Medium Right Turn
 void MedRight() {
   MotorL.Speed(255);
   MotorR.Speed(80);
@@ -200,44 +126,32 @@ void HardLeft() {
   MotorR.Speed(255);
 }
 
-//Hard right - ok
+//Hard right
 void HardRight() {
   MotorL.Speed(200);
   MotorR.Speed(0);
 
 }
 
-//*** Sharp Left Turn - ok
+//*** Sharp Left Turn
 void SharpLeft() {
   MotorR.Forward(); MotorL.Backward();
   MotorR.Speed(100);
   MotorL.Speed(100);
-
-
   while (C == 1) {
     ReadIR();
   }
-
-  //  Neutral();
-  //  delay(10);
-
   MotorL.Forward(); MotorR.Forward();
 }
 
-//*** Sharp Right Turn - ok
+//*** Sharp Right Turn
 void SharpRight() {
   MotorL.Forward(); MotorR.Backward();
   MotorR.Speed(120);
   MotorL.Speed(100);
-
-
   while (C == 1) {
     ReadIR();
   }
-
-  //  Neutral();
-  //  delay(10);
-
   MotorL.Forward(); MotorR.Forward();
 }
 
@@ -250,11 +164,7 @@ void _90dLeft() {
   }
   MotorR.Forward(); MotorL.Backward();
   MotorL.Speed(100); MotorR.Speed(120);
-  AsyncWait(800);
-  //  while (AIR == 5) {
-  //    ReadIR();
-  //  }
-  //  Neutral();
+  AsyncWait(800); //turn until the track is found or 800mls exceed
   MotorL.Forward(); MotorR.Forward();
 }
 
@@ -267,11 +177,7 @@ void _90dRight() {
   }
   MotorR.Backward(); MotorL.Forward();
   MotorL.Speed(100); MotorR.Speed(120);
-  AsyncWait(800);
-  //  while (AIR == 5) {
-  //    ReadIR();
-  //  }
-  //  Neutral();
+  AsyncWait(800);//turn until the track is found or 800mls exceed
   MotorL.Forward(); MotorR.Forward();
 }
 
@@ -285,22 +191,7 @@ void U_Turn(int Time) {
   Brake();
   ReadIR();
   MotorL.Forward(); MotorR.Forward();
-
-  //  if(AIR == 5)
-  //  {
-  //      MotorL.Forward(); MotorR.Forward();
-  //      MotorL.Speed(200); MotorR.Speed(200);
-  //      AsyncWait(500); // go ahead until you find the track
-  //  }
-
 }
-
-
-//Follow track
-void FollowTrack() {
-
-}
-
 
 //*** Read all IR sensor
 void ReadIR() {
@@ -344,9 +235,10 @@ void ReadSonar() {
   Serial.println(SonarB);
 }
 
-void AsyncWait(int interval) {
-  int TimeCount = millis(); // time count
-  int CurrentTime = TimeCount;
+void AsyncWait(unsigned long interval) {
+  unsigned long TimeCount = millis();;
+  unsigned long CurrentTime = TimeCount;
+  unsigned long TimeLap;
   do {
     TimeLap = TimeCount - CurrentTime;
     TimeCount = millis();
@@ -363,5 +255,23 @@ int Beep(int n, int dly) {
     digitalWrite(BUZZER, LOW);
     delay(dly);
     i++;
+  }
+}
+
+void FindTrack() {
+  // Go forward for finding track
+  Straight();
+  AsyncWait(400); // go 15 cm
+  if (AIR == 5) { // still white space?
+    U_Turn(1600); // search sides
+    if (AIR == 5) { // still white space?
+      Straight();
+      AsyncWait(400); // go more 15 cm
+      if (AIR == 5) { // if still white space take U turn and go straight to 30 cm
+        U_Turn(800);
+        Straight();
+        AsyncWait(800);
+      }
+    }
   }
 }
