@@ -102,7 +102,19 @@ void setup() {
       }
       else if (AIR == 5)// White space
       {
-        Straight();
+        // Go forward for finding track
+        MotorL.Speed(200);
+        MotorR.Speed(255);
+        int interval = 500; // searching time
+        int TimeCount = millis(); // time count
+        int CurrentTime = TimeCount;
+        do {
+          TimeLap = TimeCount - CurrentTime;
+          TimeCount = millis();
+          ReadIR();
+        }
+        while (TimeLap < interval && AIR == 5); // if track found within time or the time is out then break the loop
+        (AIR == 5) ? U_Turn() : ReadIR(); // if there is no track turn back
       }
 
     }
@@ -242,20 +254,19 @@ void _90dRight() {
   MotorL.Forward(); MotorR.Forward();
 }
 
-//*** 180d turn on place
-void _180dTurn() {
+//*** U_Turn turn on place
+void U_Turn() {
   Neutral(); // Both motor stop with neutral gear
   delay(10);
   MotorL.Forward(); MotorR.Backward();// Rotate on place
-  MotorR.Speed(100); MotorL.Speed(100);
-  do {
-    ReadIR();
+  MotorR.Speed(120); MotorL.Speed(100);
+  AsyncWait(900); // [1800mls for 360degree]Turning until it found the track or it is on position of 180 degree
+  if(AIR == 5)
+  {
+      MotorL.Forward(); MotorR.Forward();
+      MotorL.Speed(200); MotorR.Speed(200);
+      AsyncWait(500); // go ahead until you find the track
   }
-  while (AIR == 5); // finish 180d ?
-  Brake(); // Both motor stop with neutral gear
-  Neutral();
-  delay(10);// for refreshin dirver logic
-  MotorL.Forward(); MotorR.Forward();
 }
 
 
@@ -308,16 +319,14 @@ void ReadSonar() {
 }
 
 void AsyncWait(int interval) {
-  TimeCount = millis();
-  CurrentTime = TimeCount;
+  int TimeCount = millis(); // time count
+  int CurrentTime = TimeCount;
   do {
     TimeLap = TimeCount - CurrentTime;
     TimeCount = millis();
-    Serial.print("TimeLap:");
-    Serial.println(TimeLap);
-    delay(100);
+    ReadIR();
   }
-  while (TimeLap <= interval);
+  while (TimeLap < interval && AIR == 5); // if track found within time or the time is out then break the loop
 }
 
 int Beep(int n, int dly) {

@@ -2,6 +2,7 @@
 #define MOTOR_H
 #include <Arduino.h>
 
+
 class Motor {
   private:
     int IN1;
@@ -56,6 +57,7 @@ class Motor {
       analogWrite(EN, PWM);
     }
 };
+
 
 
 #endif
