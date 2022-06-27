@@ -158,10 +158,8 @@ void SharpRight() {
 //*** 90d left turn
 void _90dLeft() {
   Serial.println("_90dLeft");
-  while (AIR != 5) {
-    ReadIR();
-    Straight();
-  }
+  Straight();
+  AsyncTurn(300);//go straight until AIR = 0 or the time out
   MotorR.Forward(); MotorL.Backward();
   MotorL.Speed(100); MotorR.Speed(120);
   AsyncWait(800); //turn until the track is found or 800mls exceed
@@ -171,10 +169,8 @@ void _90dLeft() {
 //*** 90d Right Turn
 void _90dRight() {
   Serial.println("_90dRight");
-  while (AIR != 5) {
-    ReadIR();
-    Straight();
-  }
+  Straight();
+  AsyncTurn(300);//go straight until AIR = 0 or the time out
   MotorR.Backward(); MotorL.Forward();
   MotorL.Speed(100); MotorR.Speed(120);
   AsyncWait(800);//turn until the track is found or 800mls exceed
@@ -245,6 +241,18 @@ void AsyncWait(unsigned long interval) {
     ReadIR();
   }
   while (TimeLap < interval && AIR == 5); // if track found within time or the time is out then break the loop
+}
+
+void AsyncTurn(unsigned long interval) {
+  unsigned long TimeCount = millis();;
+  unsigned long CurrentTime = TimeCount;
+  unsigned long TimeLap;
+  do {
+    TimeLap = TimeCount - CurrentTime;
+    TimeCount = millis();
+    ReadIR();
+  }
+  while (TimeLap < interval && AIR != 5); // if track found within time or the time is out then break the loop
 }
 
 int Beep(int n, int dly) {
