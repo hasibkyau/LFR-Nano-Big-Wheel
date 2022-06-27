@@ -5,21 +5,11 @@
 #include "Scorpion.h"
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <HCSR04.h>
 
 String Default_Turn = "right";
 String Track_Color = "black";
-String Current_Decision = "Straight";
 String Object = "Not Found";
-
-//Oled display
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 //IR array
 #define IRA A0
@@ -145,21 +135,18 @@ void Neutral() {
 
 //*** Straight Forward - ok
 void Straight() {
-  Current_Decision = "Straight";
   MotorR.Speed(R_max_speed);//left motor is bit damaged thats why used more duty cycle than right motor
   MotorL.Speed(L_max_speed);
 }
 
 //*** Smooth Left Turn - ok
 void SmoothLeft() {
-  Current_Decision = "Smooth Left";
   MotorL.Speed(100);
   MotorR.Speed(255);
 }
 
 //*** Smooth Right Turn - ok
 void SmoothRight() {
-  Current_Decision = "Smooth Right";
   MotorL.Speed(255);
   MotorR.Speed(100);
 }
@@ -167,7 +154,6 @@ void SmoothRight() {
 
 //*** Medium Left Turn - ok
 void MedLeft() {
-  Current_Decision = "Med Left";
   MotorL.Speed(50);
   MotorR.Speed(255);
 }
@@ -175,21 +161,18 @@ void MedLeft() {
 
 //*** Medium Right Turn - ok
 void MedRight() {
-  Current_Decision = "Med Right";
   MotorL.Speed(255);
   MotorR.Speed(50);
 }
 
 //hard left - ok
 void HardLeft() {
-  Current_Decision = "Hard Left";
   MotorL.Speed(0);
   MotorR.Speed(200);
 }
 
 //Hard right - ok
 void HardRight() {
-  Current_Decision = "Hard Right";
   MotorL.Speed(200);
   MotorR.Speed(0);
 
@@ -228,7 +211,6 @@ void SharpRight() {
 //*** 90d left turn
 void _90dLeft() {
   Serial.println("_90dLeft");
-  Current_Decision = "90d Left";
   Straight();
   delay(TBT);
   ReadIR();
@@ -246,7 +228,6 @@ void _90dLeft() {
 //*** 90d Right Turn
 void _90dRight() {
   Serial.println("_90dRight");
-  Current_Decision = "90d Right";
   Straight();
   delay(TBT);
   ReadIR();
@@ -263,8 +244,6 @@ void _90dRight() {
 
 //*** 180d turn on place
 void _180dTurn() {
-  Current_Decision = "180d Turn";
-  //Serial.println("Taking U turn"); delay(2000);
   Neutral(); // Both motor stop with neutral gear
   delay(10);
   MotorL.Forward(); MotorR.Backward();// Rotate on place
