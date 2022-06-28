@@ -10,16 +10,16 @@ String Default_Turn = "right",  Object = "Not Found";
 String Track_Color = "white";
 
 //***VARIABLES FOR IR SENSOR
-int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A7, IR_RIGHT = 2, IR_LEFT = 9;//IR Pins
-int A = 0, B = 0, C = 0, D = 0, E = 0, F = 1, R = 0, L = 0, AIR = 0, RL = 0; //IR variable for store value
+int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A4, IR_RIGHT = A5, IR_LEFT = A6, IR_FRONT = 2;//IR Pins
+int A = 0, B = 0, C = 0, D = 0, E = 0, R = 0, L = 0, F = 0, AIR = 0, RL = 0; //IR variable for store value
 
 #define BUZZER 13
 
 //***VARIABLES FOR SONAR SENSOR
 int S1Trig = 9, S1Echo = 10, S2Trig = 11, S2Echo = 12;//Sonar Sensor Pins
-int SonarA, SonarB;//Store sonar data
-HCSR04 SonarR(S1Trig, S1Echo); //Right Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
-HCSR04 SonarL(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
+int SNR_R = 0, SNR_L = 0;//Store sonar data
+HCSR04 SNR_RIGHT(S1Trig, S1Echo); //Right Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
+HCSR04 SNR_LEFT(S2Trig, S2Echo); //Left Sonor - initialisation class HCSR04 (trig pin - input , echo pin - output)
 
 //***VARIABLES FOR MOTOR DRIVER
 int ENA = 5, IN1 = 3, IN2 = 4, ENB = 6, IN3 = 7, IN4 = 8;//Pins For Motor Driver
@@ -30,12 +30,15 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Loading...");
   pinMode(BUZZER, OUTPUT);
-  pinMode(IR_RIGHT, INPUT);
-  pinMode(IR_LEFT, INPUT);
+  pinMode(IR_FRONT, INPUT);
   MotorR.Forward();
   MotorL.Forward();
   Beep(3, 200);
 
+  while (false) {
+    ReadIR();
+    ReadSonar();
+  }
 
   while (true) {
     ReadIR();
@@ -51,7 +54,15 @@ void setup() {
 
       else if (AIR == 5)// White space
       {
-        FindTrack();
+        Straight();
+        delay(100);
+        ReadSonar();//Find cave
+        if (SNR_R <= 30 && SNR_L <= 30) {
+          FollowCave();
+        }
+        else {
+          FindTrack();
+        }
       }
     }
 
@@ -198,8 +209,9 @@ void ReadIR() {
   C = analogRead(IRC); C = C / 600; //(C == 0) ? C = 0 : C = 1;// 0 = black, 1 = white
   D = analogRead(IRD); D = D / 600; //(D == 0) ? D = 0 : D = 1;// 0 = black, 1 = white
   E = analogRead(IRE); E = E / 600; //(E == 0) ? E = 0 : E = 1;// 0 = black, 1 = white
-  R = digitalRead(IR_RIGHT); //R = R / 600; //(D == 0) ? D = 0 : D = 1;// 0 = white, 1 = black
-  L = digitalRead(IR_LEFT); //L = L / 600; //(E == 0) ? E = 0 : E = 1;// 0 = white, 1 = black
+  R = analogRead(IR_RIGHT); R = R / 600; //(D == 0) ? D = 0 : D = 1;// 0 = white, 1 = black
+  L = analogRead(IR_LEFT); L = L / 600; //(E == 0) ? E = 0 : E = 1;// 0 = white, 1 = black
+  F = digitalRead(IR_FRONT); //F = F / 600; //(E == 0) ? E = 0 : E = 1;// 0 = white, 1 = black
   if (Track_Color == "white") {
     A = abs(A - 1);
     B = abs(B - 1);
@@ -211,6 +223,12 @@ void ReadIR() {
   }
   RL = R + L;
   AIR = A + B + C + D + E;
+
+  if (F == 0) {
+    Brake();
+    Serial.println(" ");
+    Serial.println("Obstacle Found");
+  }
 
 
   Serial.println(" ");
@@ -224,23 +242,26 @@ void ReadIR() {
   Serial.print(D);
   Serial.print(":E=");
   Serial.print(E);
-  Serial.print(":R=");
+  Serial.print(":Right=");
   Serial.print(R);
-  Serial.print(":L=");
+  Serial.print(":Left=");
   Serial.print(L);
+  Serial.print(":Front=");
+  Serial.print(F);
   Serial.print(":AIR=");
   Serial.print(AIR);
+
 }
 
 void ReadSonar() {
-  SonarA = SonarR.dist();
-  delay(68);
-  SonarB = SonarL.dist();
-  delay(68);
-  Serial.print(" :SonarA= ");
-  Serial.print(SonarA);
-  Serial.print(" :SonarB=");
-  Serial.println(SonarB);
+  SNR_R = SNR_RIGHT.dist() - 4; //sonar is 4 cm inside
+  delay(10);
+  SNR_L = SNR_LEFT.dist() - 4;//sonar is 4 cm inside
+  delay(10);
+  Serial.print(" :SNR_R= ");
+  Serial.print(SNR_R);
+  Serial.print(" :SNR_L=");
+  Serial.println(SNR_L);
 }
 
 void AsyncWait(unsigned long interval) {
@@ -291,6 +312,30 @@ void FindTrack() {
         U_Turn(800);
         Straight();
         AsyncWait(800);
+      }
+    }
+  }
+}
+
+void FollowCave() {
+  // Follow cave untill the track is not found (untlil AIR != 5)
+  while (AIR == 5) {
+    ReadIR();
+    ReadSonar();
+    int RoadWidth, SideSpace;
+    RoadWidth = SNR_R + SNR_L; // total side gap
+    SideSpace = (RoadWidth / 2); // average side gap for each side
+
+    //if (SNR_R <= 40 || SNR_L <= 40) { //when the sensor can count distance. Go by the middle of path
+    if (true) {
+      if (SNR_R > SideSpace) { // car is not in middle of the.
+        MedRight();
+      }
+      else if (SNR_L > SideSpace) { // car is not in middle of the walls
+        MedLeft();
+      }
+      else { // car is now in middle of the walls
+        Straight();
       }
     }
   }
