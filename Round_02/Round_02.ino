@@ -6,8 +6,8 @@
 #include <HCSR04.h>
 
 String Default_Turn = "right",  Object = "Not Found";
-//String Track_Color = "black";
-String Track_Color = "white";
+String Track_Color = "black";
+//String Track_Color = "white";
 
 //***VARIABLES FOR IR SENSOR
 int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A4, IR_RIGHT = A5, IR_LEFT = A6, IR_FRONT = 2;//IR Pins
