@@ -6,8 +6,8 @@
 #include <HCSR04.h>
 
 String Default_Turn = "right",  Object = "Not Found";
-//String Track_Color = "black";
-String Track_Color = "white";
+String Track_Color = "black";
+//String Track_Color = "white";
 
 //***VARIABLES FOR IR SENSOR
 int IRA = A0, IRB = A1, IRC = A2, IRD = A3, IRE = A4, IR_RIGHT = A5, IR_LEFT = A6, IR_FRONT = 2;//IR Pins
@@ -225,9 +225,10 @@ void ReadIR() {
   AIR = A + B + C + D + E;
 
   if (F == 0) {
-    Brake();
+    //Brake();
     Serial.println(" ");
     Serial.println("Obstacle Found");
+    SkipObject
   }
 
 
@@ -339,4 +340,40 @@ void FollowCave() {
       }
     }
   }
+}
+
+//***skiping object
+void SkipObject(){
+  //1. turn 90 degree right
+  MotorL.Forward(); MotorR.Backward();// Rotate on place
+  MotorR.Speed(120); MotorL.Speed(100);
+  delay(400);
+  
+  //2. Go straight 20 cm
+  Straight();
+  delay(300);
+  
+  //3. Turn 90 degree left
+  MotorR.Forward(); MotorL.Backward();// Rotate on place
+  MotorR.Speed(120); MotorL.Speed(100);
+  delay(400);
+  
+  //4. Go straight 40 cm
+  Straight();
+  delay(600);
+
+  //5. Turn 90 degree left
+  MotorR.Forward(); MotorL.Backward();// Rotate on place
+  MotorR.Speed(120); MotorL.Speed(100);
+  delay(400);
+
+  //6. go forward until find the track
+  ReadIR();
+  while(AIR == 5){
+    ReadIR();
+    Straight();
+  }
+
+  //7. Turn right after finding the track
+  _90dRight();
 }
